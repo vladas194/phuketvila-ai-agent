@@ -4,12 +4,32 @@ const cors = require('cors');
 const axios = require('axios');
 
 const app = express();
+
+// Важные настройки CORS
 app.use(cors({
-  origin: ['https://phuketvila.com', 'https://your-tilda-site.tilda.ws'] // Укажите ваш домен Tilda
+  origin: [
+    'https://phuketvila.com',
+    'https://your-tilda-site.tilda.ws',
+    'https://your-tilda-site.tilda.ws'
+  ],
+  methods: ['POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+  credentials: true
 }));
-app.use(express.json());
+
+// Обработка OPTIONS запроса
+app.options('/chat', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.sendStatus(204);
+});
 
 app.post('/chat', async (req, res) => {
+  // Устанавливаем CORS заголовки для основного запроса
+  res.setHeader('Access-Control-Allow-Origin', 'https://phuketvila.com');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
   try {
     const { message } = req.body;
     
@@ -17,7 +37,7 @@ app.post('/chat', async (req, res) => {
       model: "qwen-3",
       messages: [{
         role: "system",
-        content: "Ты консультант phuketvila.com. Отвечай только о недвижимости на Пхукете. Будь вежливым и кратким."
+        content: "Ты консультант phuketvila.com. Отвечай только о недвижимости на Пхукете."
       }, {
         role: "user",
         content: message
