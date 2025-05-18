@@ -1,54 +1,39 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-
-const app = express();
-
-// Настройки CORS
-const allowedOrigins = [
-  'https://phuketvila.com',
-  'https://your-tilda-site.tilda.ws'
-];
-
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type']
-}));
-
-// Обработчик чата
-app.post('/chat', async (req, res) => {
-  try {
-    const { messages } = req.body;
-    
-    const response = await axios.post('https://api.qwen.ai/v1/chat/completions', {
-      model: "qwen-3",
-      messages: messages,
-      temperature: 0.7
-    }, {
-      headers: {
-        'Authorization': `Bearer ${process.env.QWEN_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    res.json({ reply: response.data.choices[0].message.content });
-
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: "Ошибка сервера" });
-  }
+// Cloudflare Worker script
+addEventListener('fetch', event => {
+  event.respondWith(handleRequest(event.request));
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+async function handleRequest(request) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
+  }
+
+  const url = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';
+  const init = {
+    method: request.method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': request.headers.get('Authorization')
+    },
+    body: await request.text()
+  };
+  
+  const response = await fetch(url, init);
+  const results = await response.json();
+  
+  return new Response(JSON.stringify(results), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*'
+    }
+  });
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
